@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF to Audio Reader</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    input[type="file"] {
+      margin-top: 20px;
+    }
+    #text-output {
+      margin: 20px auto;
+      padding: 10px;
+      width: 90%;
+      height: 150px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDF to Audio Reader</h1>
+  <p>Upload a PDF file, and it will be read aloud!</p>
+  <input type="file" id="file-input" accept="application/pdf" />
+  <div id="text-output" placeholder="Extracted text will appear here"></div>
+  <button id="read-aloud" disabled>Read Aloud</button>
+  <button id="stop-reading" disabled>Stop Reading</button>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const textOutput = document.getElementById('text-output');
+    const readAloudBtn = document.getElementById('read-aloud');
+    const stopReadingBtn = document.getElementById('stop-reading');
+    let speechSynthesisUtterance;
+    
+    // Function to extract text from PDF
+    fileInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file && file.type === 'application/pdf') {
+        const fileReader = new FileReader();
+        fileReader.onload = async () => {
+          const pdfData = new Uint8Array(fileReader.result);
+          const pdf = await pdfjsLib.getDocument(pdfData).promise;
+          let extractedText = '';
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            textContent.items.forEach((item) => {
+              extractedText += item.str + ' ';
+            });
+          }
+          textOutput.textContent = extractedText;
+          readAloudBtn.disabled = false;
+          stopReadingBtn.disabled = false;
+        };
+        fileReader.readAsArrayBuffer(file);
+      } else {
+        alert('Please upload a valid PDF file.');
+      }
+    });
+
+    // Function to read aloud the extracted text
+    readAloudBtn.addEventListener('click', () => {
+      const text = textOutput.textContent;
+      if (text) {
+        speechSynthesis.cancel(); // Stop any ongoing speech
+        speechSynthesisUtterance = new SpeechSynthesisUtterance(text);
+        speechSynthesisUtterance.rate = 1; // Adjust speed
+        speechSynthesisUtterance.volume = 1; // Adjust volume
+        speechSynthesis.speak(speechSynthesisUtterance);
+      }
+    });
+
+    // Function to stop reading aloud
+    stopReadingBtn.addEventListener('click', () => {
+      speechSynthesis.cancel();
+    });
+  </script>
+</body>
+</html>
